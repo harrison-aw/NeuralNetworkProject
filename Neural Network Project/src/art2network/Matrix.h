@@ -12,6 +12,10 @@
 #include "nnexceptions.h"
 #include "Vector.h"
 
+#include <iostream>
+
+using namespace std;
+
 namespace art2nn {
 
 template<class T> class Matrix;
@@ -149,9 +153,9 @@ Vector<T> operator*(const Matrix<T> &left, const Vector<T> &right) {
 	if (left.m != right.dim())
 		throw dimension_error("number of columns in matrix and dimension of vector must match to multiply");
 
-	Vector<T> product(left.m);
-	for (index j = 0; j < left.m; ++j)
-		product[j] = left.column(j) * right;
+	Vector<T> product(left.n);
+	for (index i = 0; i < left.n; ++i)
+		product[i] = left.row(i) * right;
 	return product;
 }
 
@@ -160,9 +164,13 @@ Vector<T> operator*(const Vector<T> &left, const Matrix<T> &right) {
 	if (left.dim() != right.n)
 		throw dimension_error("dimension of vector and number of rows in matrix must match to multiply");
 
-	Vector<T> product(right.n);
-	for (index i = 0; i < right.n; ++i)
-		product[i] = left * right.row(i);
+	Vector<T> product(right.m);
+	if (left.dim() > 0) {
+		for (index j = 0; j < right.m; ++j) {
+			Vector<T> colj(right.column(j));
+			product[j] = left * colj;
+		}
+	}
 	return product;
 }
 
@@ -297,29 +305,38 @@ void Matrix<T>::resize(dimension new_n, dimension new_m) {
 		index min_m = (m < new_m) ? m : new_m;
 
 		new_entries = new T*[new_n];
+
 		for (index i = 0; i < new_n; ++i) {
 			new_entries[i] = new T[new_m];
-			for (index j = 0; j < min_m; ++j) {
-				if (i < n)
-					new_entries[i][j] = entries[i][j];
+
+			if (entries != NULL) {
+				for (index j = 0; j < min_m; ++j) {
+					if (i < n)
+						new_entries[i][j] = entries[i][j];
+				}
+				if (i < n) {
+					delete[] entries[i];
+				}
 			}
-			if (i < n)
-				delete entries[i];
 		}
-		delete entries;
+		if (entries != NULL)
+			delete[] entries;
 		entries = new_entries;
 
 		new_transposed_entries = new T*[new_m];
 		for (index j = 0; j < new_m; ++j) {
-			new_transposed_entries[j] = new T[new_m];
-			for (index i = 0; i < min_n; ++i) {
+			new_transposed_entries[j] = new T[new_n];
+			if (transposed_entries != NULL) {
+				for (index i = 0; i < min_n; ++i) {
+					if (j < m)
+						new_transposed_entries[j][i] = transposed_entries[j][i];
+				}
 				if (j < m)
-					new_transposed_entries[j][i] = transposed_entries[j][i];
+					delete[] transposed_entries[j];
 			}
-			if (j < m)
-				delete transposed_entries[j];
 		}
-		delete transposed_entries;
+		if (transposed_entries != NULL)
+			delete[] transposed_entries;
 		transposed_entries = new_transposed_entries;
 
 		n = new_n;

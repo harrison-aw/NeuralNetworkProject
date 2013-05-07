@@ -34,7 +34,7 @@ public:
 
 		void zeroInput();
 
-		signal_vector operator()(const input_vector I);
+		signal_vector operator()(const input_vector &I);
 
 		friend class ART2Network;
 		friend class Layer2;
@@ -84,7 +84,7 @@ public:
 	};
 
 protected:
-	void commitNode();
+	void commitNode(const input_vector &I);
 	void learn();
 
 	dimension input_dimension;

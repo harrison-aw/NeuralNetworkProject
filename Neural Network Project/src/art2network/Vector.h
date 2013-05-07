@@ -8,7 +8,9 @@
 #ifndef VECTOR_H_
 #define VECTOR_H_
 
+#include <cfloat>
 #include <cmath>
+#include <iostream>
 
 #include "indextypes.h"
 #include "nnexceptions.h"
@@ -24,6 +26,7 @@ template<class T> Vector<T> operator/(const Vector <T>&, T);
 template<class T> T operator*(const Vector<T>&, const Vector<T>&);
 template<class T> bool operator==(const Vector<T>&, const Vector<T>&);
 template<class T> bool operator!=(const Vector<T>&, const Vector<T>&);
+template<class T> std::ostream &operator<<(std::ostream&, const Vector<T>&);
 
 template<class T>
 class Vector {
@@ -42,6 +45,8 @@ public:
 	friend T operator*<>(const Vector<T> &left, const Vector<T> &right);
 	friend bool operator==<>(const Vector<T> &left, const Vector<T> &right);
 	friend bool operator!=<>(const Vector<T> &left, const Vector<T> &right);
+
+	friend std::ostream &operator<<<>(std::ostream &os, const Vector<T> &vector);
 
 	Vector<T> &operator=(const Vector<T> &vector);
 	Vector<T> &operator+=(const Vector<T> &vector);
@@ -72,8 +77,9 @@ Vector<T>::Vector(const Vector<T> &vector):
 	n(vector.n), coords(NULL) {
 	if (n > 0) {
 		coords = new T[n];
-		for (index i = 0; i < n; ++i)
+		for (index i = 0; i < n; ++i) {
 			coords[i] = vector.coords[i];
+		}
 	}
 }
 
@@ -92,8 +98,9 @@ Vector<T>::Vector(dimension n, T *array):
 	n(n), coords(NULL) {
 	if (n > 0) {
 		coords = new T[n];
-		for (index i = 0; i < n; ++i)
+		for (index i = 0; i < n; ++i) {
 			coords[i] = array[i];
+		}
 	}
 }
 
@@ -159,6 +166,18 @@ bool operator==(const Vector<T> &left, const Vector<T> &right) {
 template<class T>
 bool operator!=(const Vector<T> &left, const Vector<T> &right) {
 	return !(left == right);
+}
+
+template<class T>
+std::ostream &operator<<(std::ostream &os, const Vector<T> &vector) {
+	os << '[';
+	for (index i = 0; i < vector.n; ++i) {
+		os << vector.coords[i];
+		if (i + 1 < vector.n)
+			os << ",";
+	}
+	os << ']';
+	return os;
 }
 
 template<class T>

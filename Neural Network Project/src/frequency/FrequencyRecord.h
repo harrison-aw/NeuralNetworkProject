@@ -16,6 +16,8 @@ namespace nnproject {
 
 class FrequencyRecord {
 public:
+	typedef std::map<char, unsigned int>::iterator iterator;
+
 	FrequencyRecord();
 	FrequencyRecord(const FrequencyRecord &fr);
 	explicit FrequencyRecord(const std::string &filename);
@@ -23,6 +25,9 @@ public:
 
 	friend std::ostream &operator<<(std::ostream &os, FrequencyRecord &fr);
 	friend std::istream &operator>>(std::istream &is, FrequencyRecord &fr);
+
+	iterator begin() { return record.begin(); }
+	iterator end() { return record.end(); }
 
 	void analyzeFile(const std::string &filename);
 

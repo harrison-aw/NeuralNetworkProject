@@ -5,9 +5,8 @@
  *      Author: Tony
  */
 
+#include <fstream>
 #include <iostream>
-
-#include <dirent.h>
 
 #include "FrequencyTable.h"
 
@@ -15,14 +14,14 @@ using namespace std;
 using namespace nnproject;
 
 int main(int argc, char *argv[]) {
+	FrequencyTable ft("files/");
 
-	FrequencyRecord fr2;
-	cin >> fr2;
-
-
-	//FrequencyTable ft("Debug/files/");
-
-	//cout << ft;
+	ofstream fout("input.ft");
+	if (fout) {
+		fout << ft;
+		fout.close();
+		cout << "input.ft written" << endl;
+	}
 
 	return 0;
 }

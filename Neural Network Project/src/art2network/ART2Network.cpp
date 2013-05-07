@@ -9,8 +9,12 @@
 #include "nnfunctions.h"
 
 #include <cmath>
+#include <iostream>
+#include <stdexcept>
 
-using namespace art2nn;
+using namespace std;
+
+namespace art2nn {
 
 ART2Network::ART2Network(dimension input_dimension, param a, param b, param c, param d, param e, param theta, param rho):
 	input_dimension(input_dimension),
@@ -24,50 +28,81 @@ ART2Network::~ART2Network() {
 }
 
 art2nn::index ART2Network::operator()(const input_vector &I) {
+	F1.zeroInput();
+	F2.resetWeights();
+
+	input_vector normedI = I / I.norm();
+
+	int nodes_committed = 0;
+
+	if (F2.getNodeCount() == 0) {
+		commitNode(normedI);
+		++nodes_committed;
+	}
+
 	bool stable = false;
 	do {
-		F2(F1(I));  // feed forward
-		F1(I);      // feed back
+		signal_vector F2nets = F1(normedI) * bottom_up_W;
+		cout << "F2 nets: " << F2nets << endl;
+		F2(F2nets);  // feed forward
+		cout << "Winning index: " << F2.winner() << endl;
+		F1(normedI);      // feed backward
+		F1(normedI);      // feed backward
+
 		if (vigilance()) {  // if vigilance test is passed
+			cout << "network is stable" << endl;
 			stable = true;
 		} else {
-			if (F2.unsuppressedNodeCount() > 0)
+			if (F2.unsuppressedNodeCount() > 0) {
+				cout << "suppressing winner" << endl;
 				F2.suppressWinner();
-			else
-				commitNode();
+			} else {
+				cout << "committing node" << endl;
+				commitNode(normedI);
+				++nodes_committed;
+			}
+		}
+
+		cout << "learning" << endl;
+		learn();
+
+		if (nodes_committed > 2) {
+			cout << "too many nodes committed" << endl;
+			throw new runtime_error("too many nodes committed");
 		}
 	} while (!stable);
-
-	learn();
-
-	F2.resetWeights();
 
 	return F2.winner();
 }
 
-void ART2Network::commitNode() {
+void ART2Network::commitNode(const input_vector &I) {
+	F2.addNode();
 	dimension category_count = F2.getNodeCount();
 
-	F2.addNode();
+	const signal_vector &p = F1.p;
+	const signal_vector &u = F1.u;
 
 	bottom_up_W.resize(input_dimension, category_count);
-	top_down_W.resize(F2.getNodeCount(), category_count);
+	top_down_W.resize(category_count, input_dimension);
 
 	// add connection weights to new node
-	index j = category_count - 1;
+	index J = category_count - 1;
 	for (index i = 0; i < input_dimension; ++i) {
-		bottom_up_W(i, j, 1 / ((1 - d) * sqrt(input_dimension)));
-		top_down_W(j, i, 0);
+		bottom_up_W(i, J, p[i]);
+		top_down_W(J, i, u[i]);
 	}
 }
 
 void ART2Network::learn() {
 	index J = F2.winner();
-	const signal_vector &p = F1.p;
+	const signal_vector &u = F1.u;
 
 	for (index i = 0; i < input_dimension; ++i) {
-		bottom_up_W(i, J, bottom_up_W(i, J) + d * (p[i] - bottom_up_W(i, J)));
-		top_down_W(J, i, top_down_W(J, i) + d * (p[i] - top_down_W(J, i)));
+		weight bottom_up_delta = d * (u[i]/(1-d) - bottom_up_W(i, J));
+		weight top_down_delta = d * (u[i]/(1-d) - top_down_W(J, i));
+
+		bottom_up_W(i, J, bottom_up_W(i, J) + bottom_up_delta);
+		top_down_W(J, i, top_down_W(J, i) + top_down_delta);
 	}
 }
 
@@ -84,34 +119,28 @@ ART2Network::Layer1::Layer1(const ART2Network &parent):
 	x(parent.input_dimension) {
 }
 
-signal_vector ART2Network::Layer1::operator()(input_vector I) {
+signal_vector ART2Network::Layer1::operator()(const input_vector &I) {
 	param a = parent.a;
 	param b = parent.b;
+	param d = parent.d;
 	param e = parent.e;
 	param theta = parent.theta;
 
 	signal (*f)(param, signal) = parent.f;
 	signal (*g)(param, signal) = parent.g;
 
-	const weight_matrix &W = parent.top_down_W;
+	const weight_matrix &top_down_W = parent.top_down_W;
 
 	signal_vector y = parent.F2.output();
 
-	signal_vector gated = vectorApply(y, g, theta);
-	signal_vector transformed = gated * W;
-	signal_vector temp_p(u + transformed.project(u.dim()));
-	signal_vector temp_q(p * (e + p.norm()));
-	signal_vector temp_u(v * (e + v.norm()));
-	signal_vector temp_v(vectorApply(x, f, theta) + b * vectorApply(q, f, theta));
-	signal_vector temp_w(I + a * u);
-	signal_vector temp_x(w * (e + w.norm()));
+	signal_vector old_p, old_u;
 
-	p = temp_p;
-	q = temp_q;
-	u = temp_u;
-	v = temp_v;
-	w = temp_w;
-	x = temp_x;
+	w = I + a * u;
+	x = w / (e + w.norm());
+	v = vectorApply(x, f, theta) + b * vectorApply(q, f, theta);
+	u = v / (e + v.norm());
+	p = u + (vectorApply(y, g, d) * top_down_W).project(u.dim());
+	q = p  - u;
 
 	return p;
 }
@@ -126,13 +155,18 @@ void ART2Network::Layer1::zeroInput() {
 /* Layer 2 */
 
 ART2Network::Layer2::Layer2(const ART2Network &parent):
-	Maxnet(), parent(parent) {
+	Maxnet(0), parent(parent) {
 }
 
 art2nn::index ART2Network::Layer2::winner() const {
-	for (index J = 0; J < node_count; ++J)
-		return J;
-	return 0;
+	art2nn::index J = 0;
+	for (index j = 0; j < node_count; ++j) {
+		if (signals[j] > 0) {
+			J = j;
+			break;
+		}
+	}
+	return J;
 }
 
 art2nn::signal ART2Network::Layer2::winnerSignal() const {
@@ -193,9 +227,17 @@ bool ART2Network::Vigil::operator()() {
 	param rho = parent.rho;
 
 	const signal_vector &u = parent.F1.u;
-	const signal_vector &p = parent.F1.p;
+	const signal_vector &q = parent.F1.q;
 
-	r = (u + c*p) / (e + u.norm() + c * p.norm());
+	r = (u + c*q) / (e + u.norm() + c * q.norm());
 
-	return rho / (e + r.norm()) < 1;
+	cout << "|r| = " << r.norm() << endl;
+
+	if (r.norm() != r.norm()) {
+		throw new runtime_error("r is nan");
+	}
+
+	return (rho / (e + r.norm())) < 1;
 }
+
+} /* namespace art2nn */

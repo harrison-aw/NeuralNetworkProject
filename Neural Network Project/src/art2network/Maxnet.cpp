@@ -5,6 +5,8 @@
  *      Author: Tony
  */
 
+#include <iostream>
+
 #include "Maxnet.h"
 #include "nnfunctions.h"
 
@@ -54,6 +56,18 @@ const signal_vector &Maxnet::operator()(const input_vector &I) {
 
 	do {
 		iterate();
+
+		cout << "Layer2: " << signals << endl;
+
+		if (signals.norm() < .00000001L) {
+			index J = 0;
+			for (index j = 0; j < node_count; ++j) {
+				if (signals[j] > 0) {
+					signals[j] += 1;
+					break;
+				}
+			}
+		}
 
 		non_zero_count = 0;
 		for (index j = 0; j < node_count; ++j) {

@@ -24,6 +24,7 @@ public:
 
 	Maxnet &operator=(const Maxnet &maxnet);
 	const signal_vector &operator()(const input_vector &I);  // iterates until winner chosen
+	const signal_vector &iterate(const input_vector &I);
 
 	const signal_vector &output() const { return signals; }
 	size_t getNodeCount() const { return node_count; }

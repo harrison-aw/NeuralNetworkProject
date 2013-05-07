@@ -14,10 +14,10 @@
 
 namespace art2nn {
 
-typedef double param;
-typedef double signal;
-typedef double weight;
-typedef double input;
+typedef long double param;
+typedef long double signal;
+typedef long double weight;
+typedef long double input;
 
 typedef Vector<signal> signal_vector;
 typedef Vector<weight> weight_vector;

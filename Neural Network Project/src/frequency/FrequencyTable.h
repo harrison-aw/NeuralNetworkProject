@@ -20,12 +20,18 @@ namespace nnproject {
 
 class FrequencyTable {
 public:
+	typedef std::map<std::string, FrequencyRecord>::iterator iterator;
+
 	FrequencyTable();
 	explicit FrequencyTable(const std::string &directory_path);
 	virtual ~FrequencyTable();
 
 	friend std::ostream &operator<<(std::ostream &os, FrequencyTable &ft);
 	friend std::istream &operator>>(std::istream &is, FrequencyTable &ft);
+	FrequencyRecord &operator[](const std::string &key);
+
+	iterator begin() { return table.begin(); };
+	iterator end() { return table.end(); };
 
 	void buildFromDirectory(const std::string &directory_path);
 

@@ -20,29 +20,33 @@ using namespace std;
 
 namespace nnproject {
 
-GitHubLink::GitHubLink() {
+GitHubLink::GitHubLink():
+	current_page(1) {
 }
 
 GitHubLink::~GitHubLink() {
 }
 
-void GitHubLink::downloadCode(string file_extension, unsigned int size_lower_bound, unsigned int size_upper_bound) {
+void GitHubLink::downloadCode(string file_extension, unsigned int size_lower_bound, unsigned int size_upper_bound, const std::string &dest) {
 	this->file_extension = file_extension;
 	this->size_lower_bound = size_lower_bound;
 	this->size_upper_bound = size_upper_bound;
 
-	getRawHtml(getUrl());
+	std::string url = getUrl();
+	cout << "searching (" << url << ")" << endl;
+	getRawHtml(url);
 	vector<string> code_urls(getCodeUrls(convertHtmlToXml(raw_html)));
 
-	for (vector<string>::iterator it = code_urls.begin(); it != code_urls.end(); ++it)
-		download(*it);
+	for (vector<string>::iterator it = code_urls.begin(); it != code_urls.end(); ++it) {
+		download(*it, dest);
+	}
 }
 
 std::string GitHubLink::getUrl() const {
 	stringstream ss;
-	ss << "https://github.com/search?type=Code&p=" << current_page
-			<< "&q=extension%3A" << file_extension
-			<< "+size%3A" << size_lower_bound << ".." << size_upper_bound;
+	ss << "https://github.com/search?q=extension%3A" << file_extension
+			<< "+size%3A" << size_lower_bound << ".." << size_upper_bound
+			<< "&type=Code&ref=cmdform&p=" << current_page;
 	return ss.str();
 }
 
@@ -67,12 +71,11 @@ void GitHubLink::getRawHtml(const std::string &url) {
 	curl_global_cleanup();
 }
 
-void GitHubLink::download(const string &url) {
+void GitHubLink::download(const string &url, const std::string &dest) {
 	cout << "Downloading: " << url << endl;
 	getRawHtml(url);
-	cout << "Contents: " << endl << raw_html << endl;
 
-	string filename = url.substr(url.find_last_of('/') + 1);
+	string filename = dest + url.substr(url.find_last_of('/') + 1);
 	ofstream f(filename.c_str());
 	if (f) {
 		f.write(raw_html.c_str(), raw_html.size());

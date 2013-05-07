@@ -12,12 +12,13 @@
 using namespace std;
 using namespace nnproject;
 
-int main() {
+int main(int argc, char *argv[]) {
 
 	GitHubLink link;
 
 	try {
-		link.downloadCode("lisp", 5000, 10000);
+		link.downloadCode("lisp", 5000, 10000, "files/");
+		link.downloadCode("cpp", 5000, 10000, "files/");
 	} catch (GitHubLink::xml_parsing_exception &e) {
 		cout << e.what() << endl;
 	}

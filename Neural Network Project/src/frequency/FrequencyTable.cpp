@@ -43,6 +43,10 @@ istream &operator>>(istream &is, FrequencyTable &ft) {
 	return is;
 }
 
+FrequencyRecord &FrequencyTable::operator [](const string &key) {
+	return table[key];
+}
+
 void FrequencyTable::buildFromDirectory(const string &directory_path) {
 	vector<string> filenames(getFilenames(directory_path));
 

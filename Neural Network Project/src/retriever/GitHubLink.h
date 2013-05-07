@@ -23,7 +23,7 @@ public:
 	GitHubLink();
 	virtual ~GitHubLink();
 
-	void downloadCode(std::string file_extension, unsigned int size_lower_bound, unsigned int size_upper_bound);
+	void downloadCode(std::string file_extension, unsigned int size_lower_bound, unsigned int size_upper_bound, const std::string &dest = "");
 
 	class xml_conversion_exception: public std::runtime_error {
 	public:
@@ -43,7 +43,7 @@ public:
 protected:
 	std::string getUrl() const;
 	void getRawHtml(const std::string &url);
-	void download(const std::string &url);
+	void download(const std::string &url, const std::string &dest = "");
 
 	static std::string convertHtmlToXml(std::string raw_html);
 	static std::vector<std::string> getCodeUrls(std::string xhtml);
