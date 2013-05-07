@@ -19,6 +19,9 @@ int main(int argc, char *argv[]) {
 	try {
 		link.downloadCode("lisp", 5000, 10000, "files/");
 		link.downloadCode("cpp", 5000, 10000, "files/");
+		link.downloadCode("py", 5000, 10000, "files/");
+		link.downloadCode("java", 5000, 10000, "files/");
+		link.downloadCode("js", 5000, 10000, "files/");
 	} catch (GitHubLink::xml_parsing_exception &e) {
 		cout << e.what() << endl;
 	}

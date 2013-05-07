@@ -5,6 +5,7 @@
  *      Author: Tony
  */
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -35,27 +36,29 @@ int main() {
 	param c = 4;
 	param d = .2;
 	param e = 0;
-	param theta = .01;
-	param rho = .99;
+	param theta = .005;
+	param rho = .99999;
 
 	ART2Network network(127, a, b, c, d, e, theta, rho);
-	cout << "Network built." << endl;
+	cout << "Network built." << endl << endl;
 
-	cout << "Inputs: " << endl;
-	for (FrequencyTable::iterator it = ft.begin(); it != ft.end(); ++it) {
-		cout << makeInput(it->second).project(20) << endl;
-	}
+	for (int i = 0; i < 10; ++i) {
+		cout << "Shuffling inputs" << endl << endl;
+		vector<string> inputs;
+		for (FrequencyTable::iterator it = ft.begin(); it != ft.end(); ++it)
+			inputs.push_back(it->first);
+		std::random_shuffle(inputs.begin(), inputs.end());
 
-	cout << endl;
-	map<string, index> classification;
-	for (FrequencyTable::iterator it = ft.begin(); it != ft.end(); ++it) {
-		try {
-			cout << "processing " << it->first << endl;
-			classification[it->first] = network(makeInput(it->second));
-			cout << endl;
-		} catch (exception &e) {
-			cout << "Error: " << e.what() << endl;
-			return 1;
+		map<string, index> classification;
+		for (vector<string>::iterator it = inputs.begin(); it != inputs.end(); ++it) {
+			try {
+				cout << "processing " << *it << endl;
+				classification[*it] = network(ft[*it]);
+				cout << endl;
+			} catch (exception &e) {
+				cout << "Error: " << e.what() << endl;
+				return 1;
+			}
 		}
 	}
 

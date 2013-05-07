@@ -35,13 +35,13 @@ art2nn::index ART2Network::operator()(const input_vector &I) {
 
 	int nodes_committed = 0;
 
-	if (F2.getNodeCount() == 0) {
-		commitNode(normedI);
-		++nodes_committed;
-	}
-
 	bool stable = false;
 	do {
+		if (F2.getNodeCount() == 0 || F2.unsuppressedNodeCount() == 0) {
+			commitNode(normedI);
+			++nodes_committed;
+		}
+
 		signal_vector F2nets = F1(normedI) * bottom_up_W;
 		cout << "F2 nets: " << F2nets << endl;
 		F2(F2nets);  // feed forward
@@ -53,6 +53,9 @@ art2nn::index ART2Network::operator()(const input_vector &I) {
 			cout << "network is stable" << endl;
 			stable = true;
 		} else {
+			cout << "suppressing winner" << endl;
+			F2.suppressWinner();
+			/*
 			if (F2.unsuppressedNodeCount() > 0) {
 				cout << "suppressing winner" << endl;
 				F2.suppressWinner();
@@ -61,12 +64,13 @@ art2nn::index ART2Network::operator()(const input_vector &I) {
 				commitNode(normedI);
 				++nodes_committed;
 			}
+			*/
 		}
 
 		cout << "learning" << endl;
 		learn();
 
-		if (nodes_committed > 2) {
+		if (nodes_committed > 1) {
 			cout << "too many nodes committed" << endl;
 			throw new runtime_error("too many nodes committed");
 		}
@@ -89,7 +93,7 @@ void ART2Network::commitNode(const input_vector &I) {
 	index J = category_count - 1;
 	for (index i = 0; i < input_dimension; ++i) {
 		bottom_up_W(i, J, p[i]);
-		top_down_W(J, i, u[i]);
+		top_down_W(J, i, 0);
 	}
 }
 
@@ -199,7 +203,7 @@ void ART2Network::Layer2::suppressWinner() {
 unsigned int ART2Network::Layer2::unsuppressedNodeCount() {
 	unsigned int count = 0;
 	for (index i = 0; i < node_count; ++i) {
-		if (W(i, 0) == 0.0)
+		if (W(i, 0) != 0.0)
 			++count;
 	}
 	return count;
@@ -237,7 +241,7 @@ bool ART2Network::Vigil::operator()() {
 		throw new runtime_error("r is nan");
 	}
 
-	return (rho / (e + r.norm())) < 1;
+	return (rho / (e + r.norm())) <= 1;
 }
 
 } /* namespace art2nn */
